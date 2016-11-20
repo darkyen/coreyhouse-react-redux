@@ -18,6 +18,7 @@ export function loadCourses() {
 }
 
 export function saveCourse(course) {
+  console.log('saveCourse:', course)
   return function(dispatch) {
     return CourseAPI.saveCourse(course).then((course) => {
       if (course.id) {
