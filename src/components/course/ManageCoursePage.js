@@ -3,6 +3,7 @@ import {connect} from 'react-redux'
 import {bindActionCreators} from 'redux'
 import * as courseActions from '../../actions/course'
 import CourseForm from './CourseForm'
+import toastr from 'toastr'
 
 class ManageCoursePage extends React.Component {
   constructor(props, context) {
@@ -10,11 +11,18 @@ class ManageCoursePage extends React.Component {
 
     this.state = {
       course: Object.assign({}, this.props.course),
-      errors: {}
+      errors: {},
+      saving: false
     }
 
     this.updateCourseState = this.updateCourseState.bind(this)
     this.saveCourse = this.saveCourse.bind(this)
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (this.props.course.id != nextProps.course.id) {
+      this.setState({course: Object.assign({}, nextProps.course)})
+    }
   }
 
   updateCourseState(event) {
@@ -26,8 +34,15 @@ class ManageCoursePage extends React.Component {
 
   saveCourse(event) {
     event.preventDefault()
-    this.props.actions.saveCourse(this.state.course)
-    this.context.router.push('/courses')
+    this.setState({saving: true})
+    this.props.actions.saveCourse(this.state.course).then(() => {
+      this.setState({saving: false})
+      toastr.success('Course saved')
+      this.context.router.push('/courses')
+    }).catch(error => {
+      toastr.error(error)
+      this.setState({saving: false})
+    })
   }
 
   render() {
@@ -38,6 +53,7 @@ class ManageCoursePage extends React.Component {
         allAuthors={authors}
         course={course}
         errors={errors}
+        saving={this.state.saving}
         onChange={this.updateCourseState}
         onSave={this.saveCourse}
       />
@@ -47,7 +63,7 @@ class ManageCoursePage extends React.Component {
 
 ManageCoursePage.propTypes = {
   actions: PropTypes.object.isRequired,
-  course: PropTypes.object.isRequired,
+  course: PropTypes.object,
   authors: PropTypes.array.isRequired
 }
 
@@ -66,7 +82,7 @@ function mapStateToProps(state, ownProps) {
   const courseId = ownProps.params.id
   let course = {id: '', watchHref: '', title: '', authorId: '', length: '', category: ''}
 
-  if (courseId) {
+  if (courseId && state.courses.length) {
     course = getCourseById(state.courses, courseId)
   }
   const authors = state.authors.map((author) => ({ value: author.id, text: `${author.firstName} ${author.lastName}` }))
